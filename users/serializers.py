@@ -8,7 +8,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = CustomUser
         fields = ['id','username', 'email','is_active',
                   'first_name', 'last_name', 'is_superuser', 'last_login',
-                   'permissions', 'profile_picture', 'bithdate', 'description', 'phone']
+                   'permissions', 'profile_picture', 'birthdate', 'description', 'phone']
 
     def get_permissions(self, obj):
         return obj.get_all_permissions()
