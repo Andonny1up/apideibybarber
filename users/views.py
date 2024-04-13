@@ -3,7 +3,8 @@ from rest_framework import generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import DjangoModelPermissions ,IsAuthenticated
-from django.db.models import Q
+from django.db.models import Q, Value as V
+from django.db.models.functions import Concat
 from .paginations import CustomPageNumberPagination
 from .serializers import UserSerializer
 from .models import CustomUser
@@ -26,8 +27,11 @@ class UserList(generics.ListCreateAPIView):
         queryset = CustomUser.objects.all()
         search_param = self.request.query_params.get('search', None)
         if search_param is not None:
-            queryset = queryset.filter(Q(first_name__icontains=search_param) |
-                                       Q(last_name__icontains=search_param))
+            full_name = Concat('first_name', V(' '), 'last_name')
+            queryset = queryset.annotate(full_name=full_name).filter(
+                Q(full_name__icontains=search_param) |
+                Q(username__icontains=search_param)
+            )
 
         return queryset
 
