@@ -6,8 +6,9 @@ from rest_framework.permissions import DjangoModelPermissions ,IsAuthenticated
 from django.db.models import Q, Value as V
 from django.db.models.functions import Concat
 from .paginations import CustomPageNumberPagination
-from .serializers import UserSerializer
+from .serializers import UserSerializer, GroupSerializer
 from .models import CustomUser
+from django.contrib.auth.models import Group
 # Create your views here.
 
 
@@ -24,7 +25,11 @@ class UserList(generics.ListCreateAPIView):
     permission_classes = [DjangoModelPermissions]
 
     def get_queryset(self):
+        include_deleted = self.request.query_params.get('include_deleted', 'false')
         queryset = CustomUser.objects.all()
+        if include_deleted.lower() != 'true':
+            queryset = queryset.filter(deleted_at__isnull=True)
+
         search_param = self.request.query_params.get('search', None)
         if search_param is not None:
             full_name = Concat('first_name', V(' '), 'last_name')
@@ -36,6 +41,13 @@ class UserList(generics.ListCreateAPIView):
         return queryset
 
 class UserDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = CustomUser.objects.all()
+    queryset = CustomUser.objects.filter(deleted_at__isnull=True)
     serializer_class = UserSerializer
+    permission_classes = [DjangoModelPermissions]
+
+
+# Groups
+class GroupListView(generics.ListCreateAPIView):
+    queryset = Group.objects.all()
+    serializer_class = GroupSerializer
     permission_classes = [DjangoModelPermissions]

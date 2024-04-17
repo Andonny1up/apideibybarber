@@ -1,14 +1,22 @@
 from rest_framework import serializers, exceptions
 from .models import CustomUser
+from django.contrib.auth.models import Group, Permission
+
+class GroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Group
+        fields = ['id', 'name']
+        
 
 class UserSerializer(serializers.ModelSerializer):
     permissions = serializers.SerializerMethodField()
+    groups = GroupSerializer(many=True, read_only=True)
 
     class Meta:
         model = CustomUser
         fields = ['id','username','password', 'email','is_active',
                   'first_name', 'last_name', 'is_superuser', 'last_login',
-                   'permissions', 'profile_picture', 'birthdate', 'description', 'phone']
+                   'permissions','groups', 'profile_picture', 'birthdate', 'description', 'phone']
         extra_kwargs = {'password': {'write_only': True, 'required': False}}
 
 
@@ -28,7 +36,15 @@ class UserSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         password = validated_data.pop('password', None)
+        group = validated_data.pop('groups', None)
         user = super().update(instance, validated_data)
+        
+        if group is None:
+            user.groups.clear()
+        elif group is not None:
+            user.groups.clear()
+            user.groups.set(group)
+
         if password is not None:
             user.set_password(password)
         user.save()
