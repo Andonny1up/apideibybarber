@@ -1,11 +1,35 @@
 from rest_framework import serializers, exceptions
 from .models import CustomUser
 from django.contrib.auth.models import Group, Permission
+from django.contrib.contenttypes.models import ContentType
+
+class PermissionSerializer(serializers.ModelSerializer):
+    content_type = serializers.PrimaryKeyRelatedField(
+        queryset=ContentType.objects.all()
+    )
+    content_type_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Permission
+        fields = ['id', 'name', 'content_type','content_type_name', 'codename']
+
+    def get_content_type_name(self, obj):
+        return obj.content_type.name
+
 
 class GroupSerializer(serializers.ModelSerializer):
+    permissions = serializers.PrimaryKeyRelatedField(many=True, queryset=Permission.objects.all())
+
     class Meta:
         model = Group
-        fields = ['id', 'name']
+        fields = ['id', 'name', 'permissions']
+
+    def create(self, validated_data):
+        permissions = validated_data.pop('permissions', None)
+        group = super().create(validated_data)
+        if permissions is not None:
+            group.permissions.set(permissions)
+        return group
         
 
 class UserSerializer(serializers.ModelSerializer):

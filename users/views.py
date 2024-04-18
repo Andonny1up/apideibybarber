@@ -6,9 +6,9 @@ from rest_framework.permissions import DjangoModelPermissions ,IsAuthenticated
 from django.db.models import Q, Value as V
 from django.db.models.functions import Concat
 from .paginations import CustomPageNumberPagination
-from .serializers import UserSerializer, GroupSerializer
+from .serializers import UserSerializer, GroupSerializer, PermissionSerializer
 from .models import CustomUser
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, Permission
 # Create your views here.
 
 
@@ -50,5 +50,40 @@ class UserDetail(generics.RetrieveUpdateDestroyAPIView):
 class GroupListView(generics.ListCreateAPIView):
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
+    pagination_class = CustomPageNumberPagination
+    permission_classes = [DjangoModelPermissions]
+
+    def get_queryset(self):
+        queryset = Group.objects.all()
+
+        search_param = self.request.query_params.get('search', None)
+        if search_param is not None:
+            queryset = queryset.filter(name__icontains=search_param)
+        
+        return queryset
+
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+        permissions = Permission.objects.all()
+        response.data['available_permissions'] = PermissionSerializer(permissions, many=True).data
+        return response
+    
+
+class GroupDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Group.objects.all()
+    serializer_class = GroupSerializer
+    permission_classes = [DjangoModelPermissions]
+
+
+class AllPermissionListView(APIView):
+    def get(self, request):
+        permissions = Permission.objects.all()
+        serializer = PermissionSerializer(permissions, many=True)
+        return Response(serializer.data)
+
+# Permissions
+class PermissionListView(generics.ListCreateAPIView):
+    queryset = Permission.objects.all()
+    serializer_class = PermissionSerializer
     pagination_class = CustomPageNumberPagination
     permission_classes = [DjangoModelPermissions]
