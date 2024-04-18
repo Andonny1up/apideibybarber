@@ -50,4 +50,5 @@ class UserDetail(generics.RetrieveUpdateDestroyAPIView):
 class GroupListView(generics.ListCreateAPIView):
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
+    pagination_class = CustomPageNumberPagination
     permission_classes = [DjangoModelPermissions]
