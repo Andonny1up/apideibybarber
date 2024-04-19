@@ -3,6 +3,12 @@ from .models import CustomUser
 from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
 
+class ContentTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContentType
+        fields = ['id', 'app_label', 'model', 'name']
+
+
 class PermissionSerializer(serializers.ModelSerializer):
     content_type = serializers.PrimaryKeyRelatedField(
         queryset=ContentType.objects.all()
@@ -34,13 +40,14 @@ class GroupSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     permissions = serializers.SerializerMethodField()
-    groups = GroupSerializer(many=True, read_only=True)
+    groups = serializers.PrimaryKeyRelatedField(many=True, queryset=Group.objects.all())
+    groups_detail = GroupSerializer(source='groups', many=True, read_only=True)
 
     class Meta:
         model = CustomUser
         fields = ['id','username','password', 'email','is_active',
                   'first_name', 'last_name', 'is_superuser', 'last_login',
-                   'permissions','groups', 'profile_picture', 'birthdate', 'description', 'phone']
+                   'permissions','groups','groups_detail', 'profile_picture', 'birthdate', 'description', 'phone']
         extra_kwargs = {'password': {'write_only': True, 'required': False}}
 
 
@@ -59,6 +66,7 @@ class UserSerializer(serializers.ModelSerializer):
     
 
     def update(self, instance, validated_data):
+        print('VALIDATED DATA',validated_data)
         password = validated_data.pop('password', None)
         group = validated_data.pop('groups', None)
         user = super().update(instance, validated_data)

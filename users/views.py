@@ -6,9 +6,10 @@ from rest_framework.permissions import DjangoModelPermissions ,IsAuthenticated
 from django.db.models import Q, Value as V
 from django.db.models.functions import Concat
 from .paginations import CustomPageNumberPagination
-from .serializers import UserSerializer, GroupSerializer, PermissionSerializer
+from .serializers import UserSerializer, GroupSerializer, PermissionSerializer, ContentTypeSerializer
 from .models import CustomUser
 from django.contrib.auth.models import Group, Permission
+from django.contrib.contenttypes.models import ContentType
 # Create your views here.
 
 
@@ -47,6 +48,12 @@ class UserDetail(generics.RetrieveUpdateDestroyAPIView):
 
 
 # Groups
+class AllGroupListView(generics.ListAPIView):
+    queryset = Group.objects.all()
+    serializer_class = GroupSerializer
+    permission_classes = [DjangoModelPermissions]
+    
+    
 class GroupListView(generics.ListCreateAPIView):
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
@@ -87,3 +94,23 @@ class PermissionListView(generics.ListCreateAPIView):
     serializer_class = PermissionSerializer
     pagination_class = CustomPageNumberPagination
     permission_classes = [DjangoModelPermissions]
+    
+    def get_queryset(self):
+        queryset = Permission.objects.all()
+
+        search_param = self.request.query_params.get('search', None)
+        if search_param is not None:
+            queryset = queryset.filter(name__icontains=search_param)
+        
+        return queryset
+    
+
+class PermissionDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Permission.objects.all()
+    serializer_class = PermissionSerializer
+    permission_classes = [DjangoModelPermissions]
+    
+
+class ContentTypeListView(generics.ListAPIView):
+    queryset = ContentType.objects.all()
+    serializer_class = ContentTypeSerializer
